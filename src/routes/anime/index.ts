@@ -3,6 +3,7 @@ import { PROVIDERS_LIST } from '@consumet/extensions';
 
 import animepahe from './animepahe';
 import animekai from './animekai';
+import hianime from './hianime';
 // The following providers were removed from @consumet/extensions and no
 // longer have a matching class to instantiate, so their routes have been
 // disabled here to prevent the whole /anime router from crashing on boot:
@@ -12,6 +13,7 @@ import animekai from './animekai';
 const routes = async (fastify: FastifyInstance, options: RegisterOptions) => {
   await fastify.register(animepahe, { prefix: '/animepahe' });
   await fastify.register(animekai, { prefix: '/animekai' });
+  await fastify.register(hianime, { prefix: '/hianime' });
 
   fastify.get('/', async (request: any, reply: any) => {
     reply.status(200).send('Welcome to Consumet Anime 🗾');
