@@ -159,7 +159,7 @@ class GogoanimeScraper {
   async debugHtml(): Promise<string> {
     try {
       const res = await this.client.get('https://gogoanime.co.za/category/one-piece');
-      return res.data.substring(0, 5000);
+      return res.data;
     } catch (err) {
       return `Error: ${err}`;
     }
