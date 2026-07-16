@@ -215,8 +215,18 @@ class GogoanimeScraper {
           `${BASE}/wp-content/themes/animestream-4/assets/js/tsfn.js`,
         )
       ).data;
-      const matches = js.match(/action['"]?\s*[:=]\s*['"][^'"]+/g) || [];
-      return matches.join('\n');
+      const lines = js
+        .split('\n')
+        .filter(
+          (l) =>
+            l.includes('ajax') ||
+            l.includes('episode') ||
+            l.includes('load') ||
+            l.includes('ts_') ||
+            l.includes('action'),
+        )
+        .slice(0, 30);
+      return lines.join('\n');
     } catch (err) {
       return `Error: ${err}`;
     }
