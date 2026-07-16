@@ -3,19 +3,6 @@ import * as cheerio from 'cheerio';
 
 const BASE = 'https://gogoanime.co.za';
 
-interface SearchResult {
-  id: string;
-  title: string;
-  image: string;
-  url: string;
-}
-
-interface Episode {
-  id: string;
-  number: number;
-  url: string;
-}
-
 interface AnimeInfo {
   id: string;
   title: string;
@@ -26,7 +13,6 @@ interface AnimeInfo {
   type: string;
   releaseDate: string;
   otherName: string;
-  episodes: Episode[];
 }
 
 interface Source {
@@ -46,36 +32,6 @@ const client = axios.create({
 });
 
 class GogoanimeScraper {
-  async search(query: string, _page: number = 1): Promise<SearchResult[]> {
-    const results: SearchResult[] = [];
-    const terms = query.toLowerCase().split(/\s+/);
-
-    for (let page = 1; page <= 3; page++) {
-      try {
-        const { data } = await client.get(`${BASE}/page/${page}/`);
-        const $ = cheerio.load(data);
-        $('.listupd article.bs, .listupd .bs').each((_, el) => {
-          const link = $(el).find('a').first();
-          const href = link.attr('href') || '';
-          const id = href.replace(`${BASE}/anime/`, '').replace(/\/$/, '');
-          const title = link.attr('title') || $(el).find('.tt').text().trim() || '';
-          const image = $(el).find('img').attr('src') || '';
-          if (
-            id &&
-            terms.every((t) => title.toLowerCase().includes(t)) &&
-            !href.includes('-episode-') &&
-            !results.find((r) => r.id === id)
-          ) {
-            results.push({ id, title, image, url: href });
-          }
-        });
-      } catch {
-        break;
-      }
-    }
-    return results;
-  }
-
   async fetchAnimeInfo(animeId: string): Promise<AnimeInfo> {
     const slug = animeId.replace(/^anime\//, '').replace(/\/$/, '');
     const { data } = await client.get(`${BASE}/anime/${slug}/`);
@@ -104,26 +60,6 @@ class GogoanimeScraper {
     const releaseDate = getSpeText('Released');
     const otherName = $('span.alter').text().trim() || getSpeText('Other name');
 
-    const episodes: Episode[] = [];
-    const epPattern = new RegExp(
-      `${slug.replace(/[.+?^${}()|[\]\\]/g, '\\$&')}-episode-(\\d+)/?$`,
-    );
-    $('a[href*="episode"]').each((_, el) => {
-      const href = $(el).attr('href') || '';
-      const match = href.match(epPattern);
-      if (match) {
-        episodes.push({
-          id: href.replace(`${BASE}/`, ''),
-          number: parseInt(match[1]),
-          url: href,
-        });
-      }
-    });
-
-    const unique = [...new Map(episodes.map((e) => [e.number, e])).values()].sort(
-      (a, b) => b.number - a.number,
-    );
-
     return {
       id: slug,
       title,
@@ -134,25 +70,7 @@ class GogoanimeScraper {
       type,
       releaseDate,
       otherName,
-      episodes: unique,
     };
-  }
-
-  async debug(page: number): Promise<string> {
-    try {
-      const { data } = await client.get(`${BASE}/page/${page}/`);
-      const $ = cheerio.load(data);
-      const items: string[] = [];
-      $('.listupd > *').each((_, el) => {
-        const tag = $(el).prop('tagName')?.toLowerCase() || '';
-        const cls = $(el).attr('class') || '';
-        const href = $(el).find('a').first().attr('href') || '';
-        if (href) items.push(`${tag}.${cls}: ${href.substring(0,80)}`);
-      });
-      return items.slice(0, 30).join('\n') || 'no items';
-    } catch (err) {
-      return `Error: ${err}`;
-    }
   }
 
   async fetchEpisodeSources(episodeId: string): Promise<Source[]> {
