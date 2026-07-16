@@ -350,7 +350,7 @@ const routes = async (fastify: FastifyInstance, options: RegisterOptions) => {
 
       try {
         const res = await hianime
-          .fetchEpisodeServers(episodeId, dub === true ? SubOrSub.DUB : SubOrSub.SUB)
+          .fetchEpisodeServers(episodeId)
           .catch((err) => reply.status(404).send({ message: err }));
 
         reply.status(200).send(res);
