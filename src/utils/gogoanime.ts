@@ -154,8 +154,26 @@ class GogoanimeScraper {
 
   async debugHtml(): Promise<string> {
     try {
-      const { data } = await this.tryDomains('/category/one-piece');
-      return data.substring(0, 3000);
+      const results: string[] = [];
+      for (const domain of DOMAINS) {
+        try {
+          const res = await this.client.get(`${domain}/category/one-piece`, {
+            maxRedirects: 0,
+            validateStatus: (s) => s < 400,
+          });
+          results.push(`--- ${domain} --- status=${res.status}`);
+          results.push(res.data.substring(0, 3000));
+        } catch (err: any) {
+          if (err.response) {
+            results.push(
+              `--- ${domain} --- status=${err.response.status} body=${err.response.data.substring(0, 200)}`,
+            );
+          } else {
+            results.push(`--- ${domain} --- error=${err.message}`);
+          }
+        }
+      }
+      return results.join('\n\n');
     } catch (err) {
       return `Error: ${err}`;
     }
