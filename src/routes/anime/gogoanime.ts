@@ -20,7 +20,8 @@ const routes = async (fastify: FastifyInstance, options: RegisterOptions) => {
       reply.status(200).send(res);
     } catch (err) {
       reply.status(500).send({
-        message: 'Something went wrong. Contact developer for help.',
+        message: 'Something went wrong.',
+        error: String(err),
       });
     }
   });
@@ -29,14 +30,15 @@ const routes = async (fastify: FastifyInstance, options: RegisterOptions) => {
     const query = (request.params as { query: string }).query;
     const page = (request.query as { page: number }).page;
 
-    if (query === 'recent-episodes') return;
+    if (query === 'recent-episodes') return reply.status(400).send({ message: 'Use /recent-episodes endpoint' });
 
     try {
       const res = await gogoanime.search(query, page);
       reply.status(200).send(res);
     } catch (err) {
       reply.status(500).send({
-        message: 'Something went wrong. Contact developer for help.',
+        message: 'Something went wrong.',
+        error: String(err),
       });
     }
   });
@@ -47,11 +49,12 @@ const routes = async (fastify: FastifyInstance, options: RegisterOptions) => {
     try {
       const res = await gogoanime
         .fetchAnimeInfo(id)
-        .catch((err) => reply.status(404).send({ message: err }));
+        .catch((err) => reply.status(404).send({ message: String(err) }));
       reply.status(200).send(res);
     } catch (err) {
       reply.status(500).send({
-        message: 'Something went wrong. Contact developer for help.',
+        message: 'Something went wrong.',
+        error: String(err),
       });
     }
   });
@@ -71,7 +74,8 @@ const routes = async (fastify: FastifyInstance, options: RegisterOptions) => {
         reply.status(200).send(res);
       } catch (err) {
         reply.status(500).send({
-          message: 'Something went wrong. Contact developer for help.',
+          message: 'Something went wrong.',
+          error: String(err),
         });
       }
     },
