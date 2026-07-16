@@ -186,7 +186,7 @@ class GogoanimeScraper {
 
   async debugHtml(): Promise<string> {
     try {
-      const res = await this.client.get(`${BASE}/anime/one-piece/`);
+      const res = await this.client.get(`${BASE}/`, { params: { s: 'naruto' } });
       return res.data;
     } catch (err) {
       return `Error: ${err}`;
