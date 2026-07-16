@@ -45,44 +45,34 @@ const client = axios.create({
   },
 });
 
-function parseListupd(
-  html: string,
-): { id: string; title: string; image: string; url: string }[] {
-  const $ = cheerio.load(html);
-  const results: any[] = [];
-  $('.listupd article.bs, .listupd .bs').each((_, el) => {
-    const link = $(el).find('a').first();
-    const href = link.attr('href') || '';
-    const id = href.replace(`${BASE}/anime/`, '').replace(/\/$/, '');
-    const title = link.attr('title') || $(el).find('.tt').text().trim() || '';
-    const image = $(el).find('img').attr('src') || '';
-    if (id) results.push({ id, title, image, url: href });
-  });
-  return results;
-}
-
 class GogoanimeScraper {
   async search(query: string, _page: number = 1): Promise<SearchResult[]> {
     const results: SearchResult[] = [];
-
     const terms = query.toLowerCase().split(/\s+/);
 
     for (let page = 1; page <= 3; page++) {
       try {
         const { data } = await client.get(`${BASE}/page/${page}/`);
-        const items = parseListupd(data);
-        for (const item of items) {
-          if (terms.every((t) => item.title.toLowerCase().includes(t))) {
-            if (!results.find((r) => r.id === item.id)) {
-              results.push(item);
-            }
+        const $ = cheerio.load(data);
+        $('.listupd article.bs, .listupd .bs').each((_, el) => {
+          const link = $(el).find('a').first();
+          const href = link.attr('href') || '';
+          const id = href.replace(`${BASE}/anime/`, '').replace(/\/$/, '');
+          const title = link.attr('title') || $(el).find('.tt').text().trim() || '';
+          const image = $(el).find('img').attr('src') || '';
+          if (
+            id &&
+            terms.every((t) => title.toLowerCase().includes(t)) &&
+            !href.includes('-episode-') &&
+            !results.find((r) => r.id === id)
+          ) {
+            results.push({ id, title, image, url: href });
           }
-        }
+        });
       } catch {
         break;
       }
     }
-
     return results;
   }
 
@@ -122,16 +112,17 @@ class GogoanimeScraper {
       const href = $(el).attr('href') || '';
       const match = href.match(epPattern);
       if (match) {
-        const num = parseInt(match[1]);
-        const id = href.replace(`${BASE}/`, '');
-        episodes.push({ id, number: num, url: href });
+        episodes.push({
+          id: href.replace(`${BASE}/`, ''),
+          number: parseInt(match[1]),
+          url: href,
+        });
       }
     });
 
-    const unique = new Map<number, Episode>();
-    for (const ep of episodes.sort((a, b) => b.number - a.number)) {
-      if (!unique.has(ep.number)) unique.set(ep.number, ep);
-    }
+    const unique = [...new Map(episodes.map((e) => [e.number, e])).values()].sort(
+      (a, b) => b.number - a.number,
+    );
 
     return {
       id: slug,
@@ -143,7 +134,7 @@ class GogoanimeScraper {
       type,
       releaseDate,
       otherName,
-      episodes: [...unique.values()],
+      episodes: unique,
     };
   }
 
@@ -153,31 +144,17 @@ class GogoanimeScraper {
     const $ = cheerio.load(data);
 
     const sources: Source[] = [];
-
-    $('iframe[src], .player iframe, .video-embed iframe').each((_, el) => {
+    $('iframe[src]').each((_, el) => {
       const url = $(el).attr('src') || '';
       if (url && !url.includes('disqus')) {
         sources.push({ url, quality: 'default', server: 'embed' });
       }
     });
-    $(
-      '.anime_muti_link a, .links a, a[data-video], a[data-src], .server-item a, .player a',
-    ).each((_, el) => {
-      const url =
-        $(el).attr('data-video') || $(el).attr('data-src') || $(el).attr('href') || '';
-      const server = $(el).text().trim() || $(el).attr('title') || 'default';
-      if (
-        url &&
-        url !== '#' &&
-        !url.includes('javascript') &&
-        !url.startsWith('http')
-      ) {
-      }
-      if (url && url !== '#' && !url.includes('javascript')) {
-        sources.push({ url, quality: 'default', server });
-      }
+    $('a[data-video], a[data-src]').each((_, el) => {
+      const url = $(el).attr('data-video') || $(el).attr('data-src') || '';
+      const server = $(el).text().trim() || 'default';
+      if (url) sources.push({ url, quality: 'default', server });
     });
-
     return sources;
   }
 
@@ -206,30 +183,6 @@ class GogoanimeScraper {
       }
     });
     return results;
-  }
-
-  async debugHtml(): Promise<string> {
-    try {
-      const js = (
-        await client.get(
-          `${BASE}/wp-content/themes/animestream-4/assets/js/search.js`,
-        )
-      ).data;
-      const lines = js
-        .split('\n')
-        .filter(
-          (l) =>
-            l.includes('ajax') ||
-            l.includes('episode') ||
-            l.includes('load') ||
-            l.includes('ts_') ||
-            l.includes('action'),
-        )
-        .slice(0, 30);
-      return lines.join('\n');
-    } catch (err) {
-      return `Error: ${err}`;
-    }
   }
 }
 

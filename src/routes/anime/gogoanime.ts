@@ -7,15 +7,10 @@ const routes = async (fastify: FastifyInstance, options: RegisterOptions) => {
   fastify.get('/', (_, rp) => {
     rp.status(200).send({
       intro:
-        "Welcome to the Gogoanime provider: check out the provider's website @ https://gogoanime.by/",
-      routes: ['/:query', '/info/:id', '/watch/:episodeId', '/recent-episodes', '/debug'],
+        "Welcome to the Gogoanime provider: check out the provider's website @ https://gogoanime.co.za",
+      routes: ['/:query', '/info/:id', '/watch/:episodeId', '/recent-episodes'],
       documentation: 'https://docs.consumet.org/#tag/gogoanime',
     });
-  });
-
-  fastify.get('/debug', async (_, reply) => {
-    const html = await gogoanime.debugHtml();
-    reply.type('text/plain').send(html);
   });
 
   fastify.get('/recent-episodes', async (request: FastifyRequest, reply: FastifyReply) => {
@@ -24,10 +19,7 @@ const routes = async (fastify: FastifyInstance, options: RegisterOptions) => {
       const res = await gogoanime.fetchRecentEpisodes(page);
       reply.status(200).send(res);
     } catch (err) {
-      reply.status(500).send({
-        message: 'Something went wrong.',
-        error: String(err),
-      });
+      reply.status(500).send({ message: 'Something went wrong.', error: String(err) });
     }
   });
 
@@ -35,56 +27,39 @@ const routes = async (fastify: FastifyInstance, options: RegisterOptions) => {
     const query = (request.params as { query: string }).query;
     const page = (request.query as { page: number }).page;
 
-    if (query === 'recent-episodes') return reply.status(400).send({ message: 'Use /recent-episodes endpoint' });
-
     try {
       const res = await gogoanime.search(query, page);
       reply.status(200).send(res);
     } catch (err) {
-      reply.status(500).send({
-        message: 'Something went wrong.',
-        error: String(err),
-      });
+      reply.status(500).send({ message: 'Something went wrong.', error: String(err) });
     }
   });
 
   fastify.get('/info/:id', async (request: FastifyRequest, reply: FastifyReply) => {
     const id = decodeURIComponent((request.params as { id: string }).id);
-
     try {
       const res = await gogoanime
         .fetchAnimeInfo(id)
         .catch((err) => reply.status(404).send({ message: String(err) }));
       reply.status(200).send(res);
     } catch (err) {
-      reply.status(500).send({
-        message: 'Something went wrong.',
-        error: String(err),
-      });
+      reply.status(500).send({ message: 'Something went wrong.', error: String(err) });
     }
   });
 
-  fastify.get(
-    '/watch/:episodeId',
-    async (request: FastifyRequest, reply: FastifyReply) => {
-      const episodeId = (request.params as { episodeId: string }).episodeId;
-
-      if (typeof episodeId === 'undefined')
-        return reply.status(400).send({ message: 'episodeId is required' });
-
-      try {
-        const res = await gogoanime
-          .fetchEpisodeSources(episodeId)
-          .catch((err) => reply.status(404).send({ message: err }));
-        reply.status(200).send(res);
-      } catch (err) {
-        reply.status(500).send({
-          message: 'Something went wrong.',
-          error: String(err),
-        });
-      }
-    },
-  );
+  fastify.get('/watch/:episodeId', async (request: FastifyRequest, reply: FastifyReply) => {
+    const episodeId = (request.params as { episodeId: string }).episodeId;
+    if (typeof episodeId === 'undefined')
+      return reply.status(400).send({ message: 'episodeId is required' });
+    try {
+      const res = await gogoanime
+        .fetchEpisodeSources(episodeId)
+        .catch((err) => reply.status(404).send({ message: String(err) }));
+      reply.status(200).send(res);
+    } catch (err) {
+      reply.status(500).send({ message: 'Something went wrong.', error: String(err) });
+    }
+  });
 };
 
 export default routes;
