@@ -186,8 +186,12 @@ class GogoanimeScraper {
 
   async debugHtml(): Promise<string> {
     try {
-      const res = await this.client.get(`${BASE}/`, { params: { s: 'naruto' } });
-      return res.data;
+      const hc = (await this.client.get(`${BASE}/`)).data;
+      const sc = (await this.client.get(`${BASE}/wp-admin/admin-ajax.php`, {
+        params: { action: 'ajaxsearch', keyword: 'naruto' },
+        headers: { 'X-Requested-With': 'XMLHttpRequest' },
+      })).data;
+      return `HOME:\n${hc.substring(0,1000)}\n\nAJAX SEARCH:\n${JSON.stringify(sc).substring(0,2000)}`;
     } catch (err) {
       return `Error: ${err}`;
     }
