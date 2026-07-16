@@ -152,6 +152,15 @@ class GogoanimeScraper {
     return sources;
   }
 
+  async debugHtml(): Promise<string> {
+    try {
+      const { data } = await this.tryDomains('/category/one-piece');
+      return data.substring(0, 3000);
+    } catch (err) {
+      return `Error: ${err}`;
+    }
+  }
+
   async fetchRecentEpisodes(
     page: number = 1,
   ): Promise<

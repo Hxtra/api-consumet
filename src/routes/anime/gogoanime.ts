@@ -8,9 +8,14 @@ const routes = async (fastify: FastifyInstance, options: RegisterOptions) => {
     rp.status(200).send({
       intro:
         "Welcome to the Gogoanime provider: check out the provider's website @ https://gogoanime.by/",
-      routes: ['/:query', '/info/:id', '/watch/:episodeId', '/recent-episodes'],
+      routes: ['/:query', '/info/:id', '/watch/:episodeId', '/recent-episodes', '/debug'],
       documentation: 'https://docs.consumet.org/#tag/gogoanime',
     });
+  });
+
+  fastify.get('/debug', async (_, reply) => {
+    const html = await gogoanime.debugHtml();
+    reply.type('text/plain').send(html);
   });
 
   fastify.get('/recent-episodes', async (request: FastifyRequest, reply: FastifyReply) => {
