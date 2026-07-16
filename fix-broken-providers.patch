@@ -1,0 +1,262 @@
+diff --git a/src/routes/anime/animekai.ts b/src/routes/anime/animekai.ts
+index 31c5285..0548061 100644
+--- a/src/routes/anime/animekai.ts
++++ b/src/routes/anime/animekai.ts
+@@ -3,7 +3,9 @@ import { ANIME } from '@consumet/extensions';
+ import { StreamingServers, SubOrSub } from '@consumet/extensions/dist/models';
+ 
+ const routes = async (fastify: FastifyInstance, options: RegisterOptions) => {
+-  const animekai = new ANIME.AnimeKai(process.env.ANIMEKAI_URL);
++  const animekai = new ANIME.AnimeKai(
++    process.env.ANIMEKAI_URL ? { url: process.env.ANIMEKAI_URL } : undefined,
++  );
+   let baseUrl = 'https://animekai.to';
+   if (process.env.ANIMEKAI_URL) {
+     baseUrl = `https://${process.env.ANIMEKAI_URL}`;
+diff --git a/src/routes/anime/index.ts b/src/routes/anime/index.ts
+index 35ca725..d78092d 100644
+--- a/src/routes/anime/index.ts
++++ b/src/routes/anime/index.ts
+@@ -1,29 +1,16 @@
+ import { FastifyRequest, FastifyReply, FastifyInstance, RegisterOptions } from 'fastify';
+ import { PROVIDERS_LIST } from '@consumet/extensions';
+ 
+-import gogoanime from './gogoanime';
+ import animepahe from './animepahe';
+-import zoro from './zoro';
+-import nineanime from './9anime';
+-import animefox from './animefox';
+-import anify from './anify';
+-import crunchyroll from './crunchyroll';
+-import bilibili from './bilibili';
+-import marin from './marin';
+-import anix from './anix';
+ import animekai from './animekai';
++// The following providers were removed from @consumet/extensions and no
++// longer have a matching class to instantiate, so their routes have been
++// disabled here to prevent the whole /anime router from crashing on boot:
++// gogoanime, zoro, 9anime (nineanime), animefox, anify, crunchyroll,
++// bilibili, marin, anix.
+ 
+ const routes = async (fastify: FastifyInstance, options: RegisterOptions) => {
+-  await fastify.register(gogoanime, { prefix: '/gogoanime' });
+   await fastify.register(animepahe, { prefix: '/animepahe' });
+-  await fastify.register(zoro, { prefix: '/zoro' });
+-  await fastify.register(nineanime, { prefix: '/9anime' });
+-  await fastify.register(animefox, { prefix: '/animefox' });
+-  await fastify.register(anify, { prefix: '/anify' });
+-  await fastify.register(crunchyroll, { prefix: '/crunchyroll' });
+-  await fastify.register(bilibili, { prefix: '/bilibili' });
+-  await fastify.register(marin, { prefix: '/marin' });
+-  await fastify.register(anix, { prefix: '/anix' });
+   await fastify.register(animekai, { prefix: '/animekai' });
+ 
+   fastify.get('/', async (request: any, reply: any) => {
+diff --git a/src/routes/books/index.ts b/src/routes/books/index.ts
+index 6c58780..7805cc2 100644
+--- a/src/routes/books/index.ts
++++ b/src/routes/books/index.ts
+@@ -1,36 +1,20 @@
+-import { BOOKS } from '@consumet/extensions';
+ import { FastifyRequest, FastifyReply, FastifyInstance, RegisterOptions } from 'fastify';
+ 
+-import libgen from './libgen';
++// @consumet/extensions currently ships no BOOKS providers at all (Libgen was
++// removed and nothing has replaced it yet), so this route is disabled to
++// prevent the whole app from crashing on boot. Re-enable once a provider is
++// available again.
+ const routes = async (fastify: FastifyInstance, options: RegisterOptions) => {
+-  const lbgen = new BOOKS.Libgen();
+-
+   fastify.get('/', async (request: any, reply: any) => {
+     reply.status(200).send('Welcome to Consumet Books 📚');
+   });
+ 
+   fastify.get('/s', async (request: FastifyRequest, reply: FastifyReply) => {
+-    const { bookTitle, page } = request.query as {
+-      bookTitle: string;
+-      page: number;
+-    };
+-    if (!bookTitle)
+-      return reply.status(400).send({
+-        message: 'bookTitle query needed',
+-        error: 'invalid_input',
+-      });
+-    try {
+-      const data = await lbgen.search(bookTitle, page);
+-      return reply.status(200).send(data);
+-    } catch (e) {
+-      return reply.status(500).send({
+-        message: e,
+-        error: 'internal_error',
+-      });
+-    }
++    return reply.status(503).send({
++      message: 'No books provider is currently available.',
++      error: 'not_implemented',
++    });
+   });
+-
+-  await fastify.register(libgen, { prefix: '/libgen' });
+ };
+ 
+ export default routes;
+diff --git a/src/routes/light-novels/index.ts b/src/routes/light-novels/index.ts
+index 3eb0b02..592e9cd 100644
+--- a/src/routes/light-novels/index.ts
++++ b/src/routes/light-novels/index.ts
+@@ -1,11 +1,11 @@
+ import { FastifyRequest, FastifyReply, FastifyInstance, RegisterOptions } from 'fastify';
+ import { PROVIDERS_LIST } from '@consumet/extensions';
+ 
+-import readlightnovels from './readlightnovels';
++// readlightnovels (ReadLightNovels) was removed from @consumet/extensions;
++// NovelUpdates is the only light novel provider currently shipped by the
++// package, and there is no route file for it in this repo yet.
+ 
+ const routes = async (fastify: FastifyInstance, options: RegisterOptions) => {
+-  await fastify.register(readlightnovels, { prefix: '/readlightnovels' });
+-
+   fastify.get('/', async (request: any, reply: any) => {
+     reply.status(200).send('Welcome to Consumet Light Novels');
+   });
+@@ -27,7 +27,7 @@ const routes = async (fastify: FastifyInstance, options: RegisterOptions) => {
+ 
+       if (queries.page! < 1) queries.page = 1;
+ 
+-      const provider = PROVIDERS_LIST.LIGHT_NOVELS.find(
++      const provider: any = PROVIDERS_LIST.LIGHT_NOVELS.find(
+         (provider: any) => provider.toString.name === queries.lightNovelProvider,
+       );
+ 
+diff --git a/src/routes/manga/index.ts b/src/routes/manga/index.ts
+index 68c6508..fdcbde5 100644
+--- a/src/routes/manga/index.ts
++++ b/src/routes/manga/index.ts
+@@ -5,16 +5,15 @@ import managreader from './managreader';
+ import mangadex from './mangadex';
+ import mangahere from './mangahere';
+ import mangakakalot from './mangakakalot';
+-import mangasee123 from './mangasee123';
+-import mangapark from './mangapark';
++// mangasee123 and mangapark were removed from @consumet/extensions and no
++// longer have a matching class to instantiate, so their routes have been
++// disabled here to prevent the whole /manga router from crashing on boot.
+ const routes = async (fastify: FastifyInstance, options: RegisterOptions) => {
+   await fastify.register(mangadex, { prefix: '/mangadex' });
+   await fastify.register(mangahere, { prefix: '/mangahere' });
+   await fastify.register(mangakakalot, { prefix: '/mangakakalot' });
+-  await fastify.register(mangasee123, { prefix: '/mangasee123' });
+   await fastify.register(mangapill, { prefix: '/mangapill' });
+   await fastify.register(managreader, { prefix: '/managreader' });
+-  await fastify.register(mangapark, { prefix: '/mangapark' });
+   fastify.get('/', async (request: any, reply: any) => {
+     reply.status(200).send('Welcome to Consumet Manga');
+   });
+diff --git a/src/routes/manga/mangakakalot.ts b/src/routes/manga/mangakakalot.ts
+index 7b3154c..81ce2bf 100644
+--- a/src/routes/manga/mangakakalot.ts
++++ b/src/routes/manga/mangakakalot.ts
+@@ -51,7 +51,7 @@ const routes = async (fastify: FastifyInstance, options: RegisterOptions) => {
+ 
+     try {
+       const res = await mangakakalot
+-        .fetchChapterPages(chapterId,mangaId)
++        .fetchChapterPages(chapterId)
+         .catch((err: Error) => reply.status(404).send({ message: err.message }));
+ 
+       reply.status(200).send(res);
+diff --git a/src/routes/meta/anilist.ts b/src/routes/meta/anilist.ts
+index cae4991..a9e6215 100644
+--- a/src/routes/meta/anilist.ts
++++ b/src/routes/meta/anilist.ts
+@@ -7,8 +7,9 @@ import { StreamingServers } from '@consumet/extensions/dist/models';
+ 
+ import cache from '../../utils/cache';
+ import { redis } from '../../main';
+-import NineAnime from '@consumet/extensions/dist/providers/anime/9anime';
+-import Zoro from '@consumet/extensions/dist/providers/anime/zoro';
++// NOTE: NineAnime and Zoro were removed from @consumet/extensions and no
++// longer exist as importable modules. Hianime is the current default
++// provider (successor to the old Zoro/zoro.to provider).
+ 
+ const routes = async (fastify: FastifyInstance, options: RegisterOptions) => {
+   fastify.get('/', (_, rp) => {
+@@ -172,7 +173,8 @@ const routes = async (fastify: FastifyInstance, options: RegisterOptions) => {
+   fastify.get(
+     '/recent-episodes',
+     async (request: FastifyRequest, reply: FastifyReply) => {
+-      const provider = (request.query as { provider: 'zoro' }).provider;
++      const provider = (request.query as { provider: 'gogoanime' | 'Hianime' })
++        .provider;
+       const page = (request.query as { page: number }).page;
+       const perPage = (request.query as { perPage: number }).perPage;
+ 
+@@ -396,22 +398,12 @@ const generateAnilistMeta = (provider: string | undefined = undefined): Anilist
+       (p) => p.name.toLowerCase() === provider.toLocaleLowerCase(),
+     );
+ 
+-    if (possibleProvider instanceof NineAnime) {
+-      possibleProvider = new ANIME.NineAnime(
+-        process.env?.NINE_ANIME_HELPER_URL,
+-        {
+-          url: process.env?.NINE_ANIME_PROXY as string,
+-        },
+-        process.env?.NINE_ANIME_HELPER_KEY as string,
+-      );
+-    }
+-
+     return new META.Anilist(possibleProvider, {
+       url: process.env.PROXY as string | string[],
+     });
+   } else {
+-    // default provider is Zoro
+-    return new Anilist(new Zoro(), {
++    // default provider is Hianime (successor to the now-removed Zoro provider)
++    return new Anilist(new ANIME.Hianime(), {
+       url: process.env.PROXY as string | string[],
+     });
+   }
+diff --git a/src/routes/movies/index.ts b/src/routes/movies/index.ts
+index 3c412ea..9336790 100644
+--- a/src/routes/movies/index.ts
++++ b/src/routes/movies/index.ts
+@@ -2,23 +2,19 @@ import { FastifyRequest, FastifyReply, FastifyInstance, RegisterOptions } from '
+ import { PROVIDERS_LIST } from '@consumet/extensions';
+ 
+ import flixhq from './flixhq';
+-import viewasian from './viewasian';
+ import dramacool from './dramacool';
+-import fmovies from './fmovies';
+ import goku from './goku';
+-import movieshd from './movieshd';
+ import sflix from './sflix';
+-import multimovies from './multimovies';
++// The following providers were removed from @consumet/extensions and no
++// longer have a matching class to instantiate, so their routes have been
++// disabled here to prevent the whole /movies router from crashing on boot:
++// viewasian, fmovies, movieshd, multimovies.
+ 
+ const routes = async (fastify: FastifyInstance, options: RegisterOptions) => {
+   await fastify.register(flixhq, { prefix: '/flixhq' });
+-  await fastify.register(viewasian, { prefix: '/viewasian' });
+   await fastify.register(dramacool, { prefix: '/dramacool' });
+-  await fastify.register(fmovies, { prefix: '/fmovies' });
+   await fastify.register(goku, { prefix: '/goku' });
+-  await fastify.register(movieshd, { prefix: '/movieshd' });
+   await fastify.register(sflix, { prefix: '/sflix' });
+-  await fastify.register(multimovies, { prefix: '/multimovies' });
+ 
+   fastify.get('/', async (request: any, reply: any) => {
+     reply.status(200).send('Welcome to Consumet Movies and TV Shows');
+diff --git a/src/utils/bilibili.ts b/src/utils/bilibili.ts
+index 4b0dfd6..ca05c95 100644
+--- a/src/utils/bilibili.ts
++++ b/src/utils/bilibili.ts
+@@ -1,6 +1,5 @@
+ import { FastifyRequest, FastifyReply, FastifyInstance, RegisterOptions } from 'fastify';
+ import axios from 'axios';
+-import { BilibiliExtractor } from '@consumet/extensions/dist/utils';
+ 
+ class BilibiliUtilis {
+   private apiUrl = 'https://api.bilibili.tv/intl/gateway/web';

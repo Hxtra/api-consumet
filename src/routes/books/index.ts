@@ -1,36 +1,20 @@
-import { BOOKS } from '@consumet/extensions';
 import { FastifyRequest, FastifyReply, FastifyInstance, RegisterOptions } from 'fastify';
 
-import libgen from './libgen';
+// @consumet/extensions currently ships no BOOKS providers at all (Libgen was
+// removed and nothing has replaced it yet), so this route is disabled to
+// prevent the whole app from crashing on boot. Re-enable once a provider is
+// available again.
 const routes = async (fastify: FastifyInstance, options: RegisterOptions) => {
-  const lbgen = new BOOKS.Libgen();
-
   fastify.get('/', async (request: any, reply: any) => {
     reply.status(200).send('Welcome to Consumet Books 📚');
   });
 
   fastify.get('/s', async (request: FastifyRequest, reply: FastifyReply) => {
-    const { bookTitle, page } = request.query as {
-      bookTitle: string;
-      page: number;
-    };
-    if (!bookTitle)
-      return reply.status(400).send({
-        message: 'bookTitle query needed',
-        error: 'invalid_input',
-      });
-    try {
-      const data = await lbgen.search(bookTitle, page);
-      return reply.status(200).send(data);
-    } catch (e) {
-      return reply.status(500).send({
-        message: e,
-        error: 'internal_error',
-      });
-    }
+    return reply.status(503).send({
+      message: 'No books provider is currently available.',
+      error: 'not_implemented',
+    });
   });
-
-  await fastify.register(libgen, { prefix: '/libgen' });
 };
 
 export default routes;

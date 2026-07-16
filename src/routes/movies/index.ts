@@ -2,23 +2,19 @@ import { FastifyRequest, FastifyReply, FastifyInstance, RegisterOptions } from '
 import { PROVIDERS_LIST } from '@consumet/extensions';
 
 import flixhq from './flixhq';
-import viewasian from './viewasian';
 import dramacool from './dramacool';
-import fmovies from './fmovies';
 import goku from './goku';
-import movieshd from './movieshd';
 import sflix from './sflix';
-import multimovies from './multimovies';
+// The following providers were removed from @consumet/extensions and no
+// longer have a matching class to instantiate, so their routes have been
+// disabled here to prevent the whole /movies router from crashing on boot:
+// viewasian, fmovies, movieshd, multimovies.
 
 const routes = async (fastify: FastifyInstance, options: RegisterOptions) => {
   await fastify.register(flixhq, { prefix: '/flixhq' });
-  await fastify.register(viewasian, { prefix: '/viewasian' });
   await fastify.register(dramacool, { prefix: '/dramacool' });
-  await fastify.register(fmovies, { prefix: '/fmovies' });
   await fastify.register(goku, { prefix: '/goku' });
-  await fastify.register(movieshd, { prefix: '/movieshd' });
   await fastify.register(sflix, { prefix: '/sflix' });
-  await fastify.register(multimovies, { prefix: '/multimovies' });
 
   fastify.get('/', async (request: any, reply: any) => {
     reply.status(200).send('Welcome to Consumet Movies and TV Shows');

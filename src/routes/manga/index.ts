@@ -5,16 +5,15 @@ import managreader from './managreader';
 import mangadex from './mangadex';
 import mangahere from './mangahere';
 import mangakakalot from './mangakakalot';
-import mangasee123 from './mangasee123';
-import mangapark from './mangapark';
+// mangasee123 and mangapark were removed from @consumet/extensions and no
+// longer have a matching class to instantiate, so their routes have been
+// disabled here to prevent the whole /manga router from crashing on boot.
 const routes = async (fastify: FastifyInstance, options: RegisterOptions) => {
   await fastify.register(mangadex, { prefix: '/mangadex' });
   await fastify.register(mangahere, { prefix: '/mangahere' });
   await fastify.register(mangakakalot, { prefix: '/mangakakalot' });
-  await fastify.register(mangasee123, { prefix: '/mangasee123' });
   await fastify.register(mangapill, { prefix: '/mangapill' });
   await fastify.register(managreader, { prefix: '/managreader' });
-  await fastify.register(mangapark, { prefix: '/mangapark' });
   fastify.get('/', async (request: any, reply: any) => {
     reply.status(200).send('Welcome to Consumet Manga');
   });

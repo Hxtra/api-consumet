@@ -1,11 +1,11 @@
 import { FastifyRequest, FastifyReply, FastifyInstance, RegisterOptions } from 'fastify';
 import { PROVIDERS_LIST } from '@consumet/extensions';
 
-import readlightnovels from './readlightnovels';
+// readlightnovels (ReadLightNovels) was removed from @consumet/extensions;
+// NovelUpdates is the only light novel provider currently shipped by the
+// package, and there is no route file for it in this repo yet.
 
 const routes = async (fastify: FastifyInstance, options: RegisterOptions) => {
-  await fastify.register(readlightnovels, { prefix: '/readlightnovels' });
-
   fastify.get('/', async (request: any, reply: any) => {
     reply.status(200).send('Welcome to Consumet Light Novels');
   });
@@ -27,7 +27,7 @@ const routes = async (fastify: FastifyInstance, options: RegisterOptions) => {
 
       if (queries.page! < 1) queries.page = 1;
 
-      const provider = PROVIDERS_LIST.LIGHT_NOVELS.find(
+      const provider: any = PROVIDERS_LIST.LIGHT_NOVELS.find(
         (provider: any) => provider.toString.name === queries.lightNovelProvider,
       );
 

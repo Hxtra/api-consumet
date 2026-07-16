@@ -3,7 +3,9 @@ import { ANIME } from '@consumet/extensions';
 import { StreamingServers, SubOrSub } from '@consumet/extensions/dist/models';
 
 const routes = async (fastify: FastifyInstance, options: RegisterOptions) => {
-  const animekai = new ANIME.AnimeKai(process.env.ANIMEKAI_URL);
+  const animekai = new ANIME.AnimeKai(
+    process.env.ANIMEKAI_URL ? { url: process.env.ANIMEKAI_URL } : undefined,
+  );
   let baseUrl = 'https://animekai.to';
   if (process.env.ANIMEKAI_URL) {
     baseUrl = `https://${process.env.ANIMEKAI_URL}`;
