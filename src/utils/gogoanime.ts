@@ -212,7 +212,7 @@ class GogoanimeScraper {
     try {
       const js = (
         await client.get(
-          `${BASE}/wp-content/themes/animestream-4/assets/js/tsfn.js`,
+          `${BASE}/wp-content/themes/animestream-4/assets/js/search.js`,
         )
       ).data;
       const lines = js
