@@ -210,21 +210,13 @@ class GogoanimeScraper {
 
   async debugHtml(): Promise<string> {
     try {
-      const results: string[] = [];
-      const actions = ['load_episodes', 'ts_get_episodes', 'ajax_episode_list', 'get_episode_list', 'episode_load'];
-      for (const action of actions) {
-        try {
-          const { data } = await client.post(
-            `${BASE}/wp-admin/admin-ajax.php`,
-            `action=${action}&id=1111`,
-            { headers: { 'Content-Type': 'application/x-www-form-urlencoded' } },
-          );
-          results.push(`${action}: ${JSON.stringify(data).substring(0, 200)}`);
-        } catch (e: any) {
-          results.push(`${action}: error=${e.message}`);
-        }
-      }
-      return results.join('\n\n');
+      const js = (
+        await client.get(
+          `${BASE}/wp-content/themes/animestream-4/assets/js/tsfn.js`,
+        )
+      ).data;
+      const matches = js.match(/action['"]?\s*[:=]\s*['"][^'"]+/g) || [];
+      return matches.join('\n');
     } catch (err) {
       return `Error: ${err}`;
     }
