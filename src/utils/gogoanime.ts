@@ -138,6 +138,23 @@ class GogoanimeScraper {
     };
   }
 
+  async debug(page: number): Promise<string> {
+    try {
+      const { data } = await client.get(`${BASE}/page/${page}/`);
+      const $ = cheerio.load(data);
+      const items: string[] = [];
+      $('.listupd > *').each((_, el) => {
+        const tag = $(el).prop('tagName')?.toLowerCase() || '';
+        const cls = $(el).attr('class') || '';
+        const href = $(el).find('a').first().attr('href') || '';
+        if (href) items.push(`${tag}.${cls}: ${href.substring(0,80)}`);
+      });
+      return items.slice(0, 30).join('\n') || 'no items';
+    } catch (err) {
+      return `Error: ${err}`;
+    }
+  }
+
   async fetchEpisodeSources(episodeId: string): Promise<Source[]> {
     const path = episodeId.startsWith('/') ? episodeId : `/${episodeId}`;
     const { data } = await client.get(`${BASE}${path}`);

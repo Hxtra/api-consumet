@@ -13,6 +13,10 @@ const routes = async (fastify: FastifyInstance, options: RegisterOptions) => {
     });
   });
 
+  fastify.get('/debug', async (_, reply) => {
+    reply.send(await gogoanime.debug(1));
+  });
+
   fastify.get('/recent-episodes', async (request: FastifyRequest, reply: FastifyReply) => {
     const page = (request.query as { page: number }).page;
     try {
