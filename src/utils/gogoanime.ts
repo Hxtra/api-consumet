@@ -158,23 +158,8 @@ class GogoanimeScraper {
 
   async debugHtml(): Promise<string> {
     try {
-      const results: string[] = [];
-      for (const domain of DOMAINS) {
-        try {
-          const res = await this.client.get(`${domain}/category/one-piece`, {
-            maxRedirects: 0,
-            validateStatus: () => true,
-          });
-          const location = res.headers['location'] || 'none';
-          results.push(
-            `--- ${domain} --- status=${res.status} location=${location} length=${res.data.length}`,
-          );
-          results.push(res.data.substring(0, 500));
-        } catch (err: any) {
-          results.push(`--- ${domain} --- error=${err.message}`);
-        }
-      }
-      return results.join('\n\n');
+      const res = await this.client.get('https://gogoanime.co.za/category/one-piece');
+      return res.data.substring(0, 5000);
     } catch (err) {
       return `Error: ${err}`;
     }
