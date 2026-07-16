@@ -1,7 +1,11 @@
 import axios from 'axios';
 import * as cheerio from 'cheerio';
 
-const DOMAINS = ['https://gogoanime.by', 'https://gogoanime.cl', 'https://gogoanimehd.io'];
+const DOMAINS = [
+  'https://gogoanime.co.za',
+  'https://gogoanime.by',
+  'https://gogoanime.cl',
+];
 
 interface SearchResult {
   id: string;
