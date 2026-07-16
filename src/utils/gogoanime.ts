@@ -1,11 +1,7 @@
 import axios from 'axios';
 import * as cheerio from 'cheerio';
 
-const DOMAINS = [
-  'https://gogoanime.co.za',
-  'https://gogoanime.by',
-  'https://gogoanime.cl',
-];
+const BASE = 'https://gogoanime.co.za';
 
 interface SearchResult {
   id: string;
@@ -41,7 +37,7 @@ interface Source {
 
 class GogoanimeScraper {
   private client = axios.create({
-    timeout: 10000,
+    timeout: 15000,
     headers: {
       'User-Agent':
         'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
@@ -50,85 +46,75 @@ class GogoanimeScraper {
     },
   });
 
-  private baseUrl = DOMAINS[0];
-
-  private async tryDomains(path: string): Promise<{ data: string; usedDomain: string }> {
-    for (const domain of DOMAINS) {
-      try {
-        const { data } = await this.client.get(`${domain}${path}`);
-        if (data && data.length > 100) {
-          this.baseUrl = domain;
-          return { data, usedDomain: domain };
-        }
-      } catch {
-        continue;
-      }
-    }
-    throw new Error(`All Gogoanime domains failed for path: ${path}`);
-  }
-
   async search(query: string, page: number = 1): Promise<SearchResult[]> {
-    const { data } = await this.tryDomains(
-      `/search.html?keyword=${encodeURIComponent(query)}&page=${page}`,
-    );
+    const { data } = await this.client.get(`${BASE}/`, {
+      params: { s: query, page },
+    });
     const $ = cheerio.load(data);
     const results: SearchResult[] = [];
-    $('.last_episodes ul.items li, .items li').each((_, el) => {
-      const title = $(el).find('.name a, .img a').attr('title')?.trim() || $(el).find('.name').text().trim();
-      const href = $(el).find('.name a, .img a').attr('href') || '';
-      const id = href.replace('/category/', '');
+    $('.listupd article.bs').each((_, el) => {
+      const link = $(el).find('a').first();
+      const href = link.attr('href') || '';
+      const id = href.replace(`${BASE}/anime/`, '').replace(/\/$/, '');
+      const title = link.attr('title') || $(el).find('.tt').text().trim();
       const image = $(el).find('img').attr('src') || '';
-      if (id) results.push({ id, title, image, url: `${this.baseUrl}/category/${id}` });
+      if (id) results.push({ id, title, image, url: href });
     });
     return results;
   }
 
   async fetchAnimeInfo(animeId: string): Promise<AnimeInfo> {
-    const { data } = await this.tryDomains(`/category/${animeId}`);
+    const slug = animeId.replace(/^anime\//, '').replace(/\/$/, '');
+    const { data } = await this.client.get(`${BASE}/anime/${slug}/`);
     const $ = cheerio.load(data);
 
-    const title =
-      $('.anime_info_body_bg h1').text().trim() ||
-      $('.anime-info-title, h1').first().text().trim() ||
-      $('h2:first').text().trim();
+    const title = $('h1.entry-title').text().trim();
 
     const image =
-      $('.anime_info_body_bg img').attr('src') ||
-      $('.anime-poster img, .poster img').attr('src') ||
-      '';
+      $('.thumb img').attr('src') || $('.thumbook img').first().attr('src') || '';
 
     const description =
-      $('.description p').text().trim() || $('.synopsis p, .description').text().trim() || '';
+      $('.bixbox.synp .entry-content').text().trim() ||
+      $('.info-content .desc').text().trim() ||
+      '';
 
     const genres: string[] = [];
-    $('p.type:contains("Genre") a, .genres a, .genre a').each((_, el) => {
+    $('.genxed a').each((_, el) => {
       const g = $(el).text().trim();
       if (g) genres.push(g);
     });
 
-    const status = $('p.type:contains("Status") a, .status').text().trim();
-    const type = $('p.type:contains("Type") a, .type').text().trim();
-    const releaseDate = $('p.type:contains("Released")')
-      .text()
-      .replace('Released:', '')
-      .trim();
-    const otherName = $('p.type:contains("Other name")')
-      .text()
-      .replace('Other name:', '')
-      .trim();
+    const getSpeText = (label: string): string => {
+      const el = $(`.spe span, .spe div`).filter((_, e) =>
+        $(e).text().includes(label),
+      );
+      return el.text().replace(label, '').replace(/^:\s*/, '').trim();
+    };
+
+    const status = getSpeText('Status');
+    const type = getSpeText('Type');
+    const releaseDate = getSpeText('Released');
+    const otherName =
+      $('span.alter').text().trim() || getSpeText('Other name');
 
     const episodes: Episode[] = [];
-    $('#episode_related a, .episode-list a, .episodes a, .anime_video_body li a').each(
-      (_, el) => {
-        const href = $(el).attr('href') || '';
-        const epNum = parseInt(href.split('-episode-').pop() || '0');
-        const id = href.replace(/^\//, '');
-        if (id) episodes.push({ id, number: epNum, url: `${this.baseUrl}/${id}` });
-      },
+    const epPattern = new RegExp(
+      `^${BASE.replace(/[.+?^${}()|[\]\\]/g, '\\$&')}/${slug}-episode-(\\d+)/?$`,
     );
+    $('a[href*="episode"]').each((_, el) => {
+      const href = $(el).attr('href') || '';
+      const match = href.match(epPattern);
+      if (match) {
+        const num = parseInt(match[1]);
+        const id = href.replace(`${BASE}/`, '');
+        episodes.push({ id, number: num, url: href });
+      }
+    });
+
+    episodes.sort((a, b) => b.number - a.number);
 
     return {
-      id: animeId,
+      id: slug,
       title,
       image,
       description,
@@ -137,32 +123,38 @@ class GogoanimeScraper {
       type,
       releaseDate,
       otherName,
-      episodes,
+      episodes: [...new Map(episodes.map((e) => [e.number, e])).values()],
     };
   }
 
   async fetchEpisodeSources(episodeId: string): Promise<Source[]> {
-    const { data } = await this.tryDomains(`/${episodeId}`);
+    const path = episodeId.startsWith('/') ? episodeId : `/${episodeId}`;
+    const { data } = await this.client.get(`${BASE}${path}`);
     const $ = cheerio.load(data);
 
     const sources: Source[] = [];
 
-    $('.anime_muti_link a, .links a, #links a, .server-item a').each((_, el) => {
-      const url = $(el).attr('data-video') || $(el).attr('data-src') || $(el).attr('href') || '';
-      const server = $(el).text().trim() || $(el).attr('data-server') || 'default';
-      if (url && !url.startsWith('#')) sources.push({ url, quality: 'default', server });
+    $('iframe[src], .player iframe, .video-embed iframe, .entry-content iframe').each(
+      (_, el) => {
+        const url = $(el).attr('src') || '';
+        if (url && !url.includes('disqus')) {
+          sources.push({ url, quality: 'default', server: 'embed' });
+        }
+      },
+    );
+
+    $(
+      '.anime_muti_link a, .links a, a[data-video], a[data-src], .server-item a',
+    ).each((_, el) => {
+      const url =
+        $(el).attr('data-video') || $(el).attr('data-src') || $(el).attr('href') || '';
+      const server = $(el).text().trim() || $(el).attr('title') || 'default';
+      if (url && url !== '#' && !url.includes('javascript')) {
+        sources.push({ url, quality: 'default', server });
+      }
     });
 
     return sources;
-  }
-
-  async debugHtml(): Promise<string> {
-    try {
-      const res = await this.client.get('https://gogoanime.co.za/anime/one-piece/');
-      return res.data;
-    } catch (err) {
-      return `Error: ${err}`;
-    }
   }
 
   async fetchRecentEpisodes(
@@ -170,20 +162,35 @@ class GogoanimeScraper {
   ): Promise<
     { episodeId: string; animeId: string; title: string; image: string; episodeNumber: number }[]
   > {
-    const { data } = await this.tryDomains(`/?page=${page}`);
+    const { data } = await this.client.get(`${BASE}/`, { params: { page } });
     const $ = cheerio.load(data);
     const results: any[] = [];
-    $('.last_episodes ul.items li, .last_episodes li, .items li').each((_, el) => {
-      const title = $(el).find('.name a').text().trim() || $(el).find('a').attr('title')?.trim() || '';
+    $('.listupd article.bs').each((_, el) => {
+      const title =
+        $(el).find('a').attr('title') || $(el).find('.tt').text().trim();
       const image = $(el).find('img').attr('src') || '';
-      const href = $(el).find('.name a').attr('href') || $(el).find('a').attr('href') || '';
-      const animeId = href.replace('/category/', '');
-      const epLink = $(el).find('.episode a').attr('href') || '';
-      const episodeId = epLink.replace(/^\//, '');
-      const episodeNumber = parseInt($(el).find('.episode').text().replace(/[^0-9]/g, '') || '0');
-      if (animeId) results.push({ episodeId, animeId, title, image, episodeNumber });
+      const href = $(el).find('a').first().attr('href') || '';
+      const epMatch = href.match(/-episode-(\d+)\/$/);
+      if (epMatch) {
+        const episodeNumber = parseInt(epMatch[1]);
+        const animeHref = href.replace(/-episode-\d+\/$/, '/');
+        const animeId = animeHref
+          .replace(`${BASE}/anime/`, '')
+          .replace(/\/$/, '');
+        const episodeId = href.replace(`${BASE}/`, '');
+        results.push({ episodeId, animeId, title, image, episodeNumber });
+      }
     });
     return results;
+  }
+
+  async debugHtml(): Promise<string> {
+    try {
+      const res = await this.client.get(`${BASE}/anime/one-piece/`);
+      return res.data;
+    } catch (err) {
+      return `Error: ${err}`;
+    }
   }
 }
 
