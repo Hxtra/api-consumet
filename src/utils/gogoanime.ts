@@ -187,11 +187,14 @@ class GogoanimeScraper {
   async debugHtml(): Promise<string> {
     try {
       const hc = (await this.client.get(`${BASE}/`)).data;
-      const sc = (await this.client.get(`${BASE}/wp-admin/admin-ajax.php`, {
-        params: { action: 'ajaxsearch', keyword: 'naruto' },
-        headers: { 'X-Requested-With': 'XMLHttpRequest' },
-      })).data;
-      return `HOME:\n${hc.substring(0,1000)}\n\nAJAX SEARCH:\n${JSON.stringify(sc).substring(0,2000)}`;
+      const $ = cheerio.load(hc);
+      const items: string[] = [];
+      $('.listupd a, .listupd .bsx a').each((_, el) => {
+        const href = $(el).attr('href') || '';
+        const title = $(el).attr('title') || '';
+        if (href) items.push(`${title} => ${href}`);
+      });
+      return items.slice(0, 20).join('\n') || 'No items found on homepage';
     } catch (err) {
       return `Error: ${err}`;
     }
