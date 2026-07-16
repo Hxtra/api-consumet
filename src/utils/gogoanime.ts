@@ -159,18 +159,15 @@ class GogoanimeScraper {
         try {
           const res = await this.client.get(`${domain}/category/one-piece`, {
             maxRedirects: 0,
-            validateStatus: (s) => s < 400,
+            validateStatus: () => true,
           });
-          results.push(`--- ${domain} --- status=${res.status}`);
-          results.push(res.data.substring(0, 3000));
+          const location = res.headers['location'] || 'none';
+          results.push(
+            `--- ${domain} --- status=${res.status} location=${location} length=${res.data.length}`,
+          );
+          results.push(res.data.substring(0, 500));
         } catch (err: any) {
-          if (err.response) {
-            results.push(
-              `--- ${domain} --- status=${err.response.status} body=${err.response.data.substring(0, 200)}`,
-            );
-          } else {
-            results.push(`--- ${domain} --- error=${err.message}`);
-          }
+          results.push(`--- ${domain} --- error=${err.message}`);
         }
       }
       return results.join('\n\n');
