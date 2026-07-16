@@ -1,16 +1,18 @@
 import { FastifyRequest, FastifyReply, FastifyInstance, RegisterOptions } from 'fastify';
 import { PROVIDERS_LIST } from '@consumet/extensions';
 
+import gogoanime from './gogoanime';
 import animepahe from './animepahe';
 import animekai from './animekai';
 import hianime from './hianime';
 // The following providers were removed from @consumet/extensions and no
 // longer have a matching class to instantiate, so their routes have been
 // disabled here to prevent the whole /anime router from crashing on boot:
-// gogoanime, zoro, 9anime (nineanime), animefox, anify, crunchyroll,
+// zoro, 9anime (nineanime), animefox, anify, crunchyroll,
 // bilibili, marin, anix.
 
 const routes = async (fastify: FastifyInstance, options: RegisterOptions) => {
+  await fastify.register(gogoanime, { prefix: '/gogoanime' });
   await fastify.register(animepahe, { prefix: '/animepahe' });
   await fastify.register(animekai, { prefix: '/animekai' });
   await fastify.register(hianime, { prefix: '/hianime' });
