@@ -210,17 +210,21 @@ class GogoanimeScraper {
 
   async debugHtml(): Promise<string> {
     try {
-      const { data } = await client.get(`${BASE}/`);
-      const $ = cheerio.load(data);
-      const items: string[] = [];
-      $('.listupd a, .listupd img').each((_, el) => {
-        const href = $(el).attr('href') || $(el).attr('src') || '';
-        const title = $(el).attr('title') || $(el).attr('alt') || '';
-        if (href) items.push(`${title.substring(0, 40)} => ${href.substring(0, 80)}`);
-      });
-      return (
-        items.slice(0, 25).join('\n') || `HTML length: ${data.length}\nNo items found`
-      );
+      const results: string[] = [];
+      const actions = ['load_episodes', 'ts_get_episodes', 'ajax_episode_list', 'get_episode_list', 'episode_load'];
+      for (const action of actions) {
+        try {
+          const { data } = await client.post(
+            `${BASE}/wp-admin/admin-ajax.php`,
+            `action=${action}&id=1111`,
+            { headers: { 'Content-Type': 'application/x-www-form-urlencoded' } },
+          );
+          results.push(`${action}: ${JSON.stringify(data).substring(0, 200)}`);
+        } catch (e: any) {
+          results.push(`${action}: error=${e.message}`);
+        }
+      }
+      return results.join('\n\n');
     } catch (err) {
       return `Error: ${err}`;
     }
